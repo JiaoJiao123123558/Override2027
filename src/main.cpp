@@ -159,7 +159,7 @@ void opcontrol() {
         bool btnD = master.get_digital_new_press(DIGITAL_DOWN);
         bool btnA = master.get_digital(DIGITAL_A);
         bool btnB = master.get_digital(DIGITAL_B);
-        bool btnX = master.get_digital_new_press(DIGITAL_X                   );
+        bool btnX = master.get_digital_new_press(DIGITAL_X);
         
 		chassis::move(ch3 + ch1, ch3 - ch1);
         
@@ -199,6 +199,7 @@ void opcontrol() {
             gunState = !gunState;
             digit_gun.set_value(gunState);
         }
+        //igit_gun.set_value(btnX);
 
         // 滚轮
         if (R2) {

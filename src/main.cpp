@@ -141,6 +141,7 @@ void autoSelector() {
  */
 void opcontrol() {
     bool clipState = true;
+    bool gunState = true;
     int curLiftGear = 0;
 
     autoSelector();
@@ -158,6 +159,7 @@ void opcontrol() {
         bool btnD = master.get_digital_new_press(DIGITAL_DOWN);
         bool btnA = master.get_digital(DIGITAL_A);
         bool btnB = master.get_digital(DIGITAL_B);
+        bool btnX = master.get_digital_new_press(DIGITAL_X                   );
         
 		chassis::move(ch3 + ch1, ch3 - ch1);
         
@@ -170,10 +172,10 @@ void opcontrol() {
             lift::lift(0);
         }
         if (btnU) {
-            lift::setGear(CONSTRAIN(lift::getGear() + 1, 0, 4));
+            lift::setGear(CONSTRAIN(lift::getGear() + 1, 0, 5));
         }
         if (btnD) {
-            lift::setGear(CONSTRAIN(lift::getGear() - 1, 0, 4));
+            lift::setGear(CONSTRAIN(lift::getGear() - 1, 0, 5));
         }
 
 
@@ -192,7 +194,11 @@ void opcontrol() {
             clipState = !clipState;
             digit_clip.set_value(clipState);
         }
-        
+        // 小手枪
+        if (btnX) {
+            gunState = !gunState;
+            digit_gun.set_value(gunState);
+        }
 
         // 滚轮
         if (R2) {

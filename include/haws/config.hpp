@@ -17,5 +17,6 @@ const pros::Motor motor_arm(11);
 
 const Imu sensor_gyro(15);   // 陀螺仪
 
-const pros::adi::DigitalOut digit_clip('A', true);
+const pros::adi::DigitalOut digit_clip('A', false);
+const pros::adi::DigitalOut digit_gun('B', false);
 #endif

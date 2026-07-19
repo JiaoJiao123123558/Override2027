@@ -15,7 +15,8 @@ Task autoLift = Task(liftToGear); // 切换档位进程
 
 const int position[] = {
     5, 
-    950, 
+    400,//我加的
+    950, //当当老师的是950
     1550,
     2200,
     2740};

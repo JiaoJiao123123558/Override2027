@@ -4,9 +4,7 @@ using namespace chassis;
 using namespace lift;
 
 void redLeft1() {
-<<<<<<< HEAD
-=======
-    
+    /*
     //撞杆两下
     digit_gun.set_value(true);
     delay(100);
@@ -95,7 +93,6 @@ void redLeft1() {
     //chassis::moveEnc(1200,3000);
     
     //chassis::turnGyro(90,3000);*/
->>>>>>> 05e32ccb5962c0df22f107c5cb70ec39ab34769c
 }
 
 void redLeft2() {

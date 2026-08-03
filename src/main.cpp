@@ -159,6 +159,7 @@ bool overThreshold() {
 
 void opcontrol() {
     bool clipState = true;
+    bool gunState = true;
     int curLiftGear = 0;
     bool chassisLock = false;
 
@@ -208,10 +209,10 @@ void opcontrol() {
             lift::lift(0);
         }
         if (btnU) {
-            lift::setGear(CONSTRAIN(lift::getGear() + 1, 0, 4));
+            lift::setGear(CONSTRAIN(lift::getGear() + 1, 0, 5));
         }
         if (btnD) {
-            lift::setGear(CONSTRAIN(lift::getGear() - 1, 0, 4));
+            lift::setGear(CONSTRAIN(lift::getGear() - 1, 0, 5));
         }
 
         // 滚轮

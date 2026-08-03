@@ -18,10 +18,18 @@ Task autoLift = Task(liftToTarget); // 切换档位进程
 
 const int position[] = {
     5, 
+<<<<<<< HEAD
     950, 
     2550,
     5000,
     7740};
+=======
+    400,//我加的
+    950, //当当老师的是950
+    1550,
+    2200,
+    2740};
+>>>>>>> 05e32ccb5962c0df22f107c5cb70ec39ab34769c
 
 void lift(int power, motor_brake_mode_e brakeMode) {
     if (power == 0) {

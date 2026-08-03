@@ -20,4 +20,9 @@ const Imu sensor_gyro(13);   // 陀螺仪
 const Rotation sensor_lift(20);  // 旋转 -- 升降
 
 
+<<<<<<< HEAD
+=======
+const pros::adi::DigitalOut digit_clip('A', false);
+const pros::adi::DigitalOut digit_gun('E', false);
+>>>>>>> 05e32ccb5962c0df22f107c5cb70ec39ab34769c
 #endif

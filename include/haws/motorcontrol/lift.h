@@ -32,5 +32,12 @@ int getGear();
  * @brief 设置线程是否可执行
  */
 void setTaskEnable(bool enable);
+
+/**
+ * @brief 升降只旋转传感器指定位置
+ * @param position 目标高度值
+ * @param isAsync 是否开启线程异步执行, true为开启线程, 默认为true
+ */
+void liftToPosition(int position, bool isAsync = true);
 }
 #endif

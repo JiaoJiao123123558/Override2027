@@ -2,6 +2,7 @@
 #include "haws/motorcontrol/lift.h"
 #include "haws/motorcontrol/chassis.h"
 #include "haws/auto.h"
+#include "pros/motors.h"
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -12,10 +13,11 @@
 void initialize() {
 	pros::lcd::initialize();
 	
-    motor_left.set_brake_mode(E_MOTOR_BRAKE_COAST);
-    motor_right.set_brake_mode(E_MOTOR_BRAKE_COAST);
-    motor_lift.set_brake_mode_all(E_MOTOR_BRAKE_HOLD);
-    motor_arm.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+    sensor_lift.reset_position();
+
+    motor_group_left.set_brake_mode(E_MOTOR_BRAKE_COAST);
+    motor_group_right.set_brake_mode(E_MOTOR_BRAKE_COAST);
+    motor_group_lift.set_brake_mode_all(E_MOTOR_BRAKE_HOLD);
 }
 
 /**
@@ -98,26 +100,26 @@ void autonomous() {
 bool isSelectAuto = false;
 // 选自动
 void autoSelector() {
-    master.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
+    controller.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
     while (isSelectAuto) {
     //     // TODO: 显示陀螺仪传感器的值
-    //     // master.print(2, 20, "gyro:%.3f", gyro.get_rotation());
-        if (master.get_digital_new_press(DIGITAL_LEFT)) {
+    //     // controller.print(2, 20, "gyro:%.3f", gyro.get_rotation());
+        if (controller.get_digital_new_press(DIGITAL_LEFT)) {
             autoSelection = CONSTRAIN(autoSelection - 1, 0, 8);
-            master.clear_line(2);
+            controller.clear_line(2);
             pros::delay(50);
-            master.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
+            controller.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
         }
-        if (master.get_digital_new_press(DIGITAL_RIGHT)) {
+        if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
             autoSelection = CONSTRAIN(autoSelection + 1, 0, 8);
-            master.clear_line(2);
+            controller.clear_line(2);
             pros::delay(50);
-            master.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
+            controller.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
         }
-        if (master.get_digital_new_press(DIGITAL_B)) {
-            master.print(2, 1, "x");
+        if (controller.get_digital_new_press(DIGITAL_B)) {
+            controller.print(2, 1, "x");
             pros::delay(800);
-            master.clear_line(2);
+            controller.clear_line(2);
             break;
         }
         pros::delay(50);
@@ -139,27 +141,63 @@ void autoSelector() {
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+bool overThreshold() {
+    if (abs(controller.get_analog(ANALOG_LEFT_Y)) > 10) {
+        return true;
+    }
+    if (abs(controller.get_analog(ANALOG_LEFT_X)) > 10) {
+        return true;
+    }
+    if (abs(controller.get_analog(ANALOG_RIGHT_X)) > 10) {
+        return true;
+    }
+    if (abs(controller.get_analog(ANALOG_RIGHT_Y)) > 10) {
+        return true;
+    }
+    return false;
+}
+
 void opcontrol() {
     bool clipState = true;
     int curLiftGear = 0;
+    bool chassisLock = false;
 
     autoSelector();
 
 	while(true) {
-        pros::lcd::print(6, "enc: %d", chassis::getPosition()); 
+        controller.print(2, 0, chassisLock ? "锁底盘" : "      ");
+        pros::lcd::print(6, "enc: %d", chassis::getPosition());
+        pros::lcd::print(7, "lift rotate: %d", sensor_lift.get_position());
         pros::lcd::register_btn1_cb(chassis::reset); 
-		int ch3 = master.get_analog(ANALOG_LEFT_Y);
-		int ch1 =master.get_analog(ANALOG_RIGHT_X);
-        bool L1 = master.get_digital(DIGITAL_L1);
-        bool L2 = master.get_digital(DIGITAL_L2);
-        bool R1 = master.get_digital_new_press(DIGITAL_R1);
-        bool R2 = master.get_digital(DIGITAL_R2);
-        bool btnU = master.get_digital_new_press(DIGITAL_UP);
-        bool btnD = master.get_digital_new_press(DIGITAL_DOWN);
-        bool btnA = master.get_digital(DIGITAL_A);
-        bool btnB = master.get_digital(DIGITAL_B);
+		int ch3 = controller.get_analog(ANALOG_LEFT_Y);
+		int ch1 = controller.get_analog(ANALOG_RIGHT_X);
+        bool L1 = controller.get_digital(DIGITAL_L1);
+        bool L2 = controller.get_digital(DIGITAL_L2);
+        bool R1 = controller.get_digital(DIGITAL_R1);
+        bool R2 = controller.get_digital(DIGITAL_R2);
+        bool btnU = controller.get_digital_new_press(DIGITAL_UP);
+        bool btnD = controller.get_digital_new_press(DIGITAL_DOWN);
+        bool btnA = controller.get_digital(DIGITAL_A);
+        bool btnB = controller.get_digital(DIGITAL_B);
         
-		chassis::move(ch3 + ch1, ch3 - ch1);
+        // 底盘锁
+        if (overThreshold()) {
+            motor_group_left.set_brake_mode(E_MOTOR_BRAKE_COAST);
+            motor_group_right.set_brake_mode(E_MOTOR_BRAKE_COAST);
+            chassisLock = false;
+        }
+        if (controller.get_digital(DIGITAL_L1)
+            && controller.get_digital(DIGITAL_L2)
+            && controller.get_digital(DIGITAL_R1)
+            && controller.get_digital(DIGITAL_R2)) {
+            chassisLock = true;
+            chassis::move(0, 0);
+        }
+        if (chassisLock) {
+            chassis::brake(pros::E_MOTOR_BRAKE_HOLD);
+        } else {
+            chassis::move(ch3 + ch1, ch3 - ch1);
+        }		
         
         // 升降
         if (L1) {
@@ -176,29 +214,24 @@ void opcontrol() {
             lift::setGear(CONSTRAIN(lift::getGear() - 1, 0, 4));
         }
 
-
-        // 小手
-        if (btnA) {
-            motor_arm.move(50);
-        } else if (btnB) {
-            motor_arm.move(-50);
+        // 滚轮
+        if (R1) {
+            motor_group_roller.move(127);
         } else {
-            motor_arm.brake();
+            motor_group_roller.move(0);
         }
-
 
         // 夹子
-        if (R1) {
-            clipState = !clipState;
-            digit_clip.set_value(clipState);
-        }
-        
-
-        // 滚轮
         if (R2) {
-            motor_roller.move(127);
+            motor_clip.move(-127);
         } else {
-            motor_roller.move(0);
+            motor_clip.move(0);
+        }
+
+        if (btnA) {
+            motor_toggle.move(127);
+        } else {
+            motor_toggle.move(0);
         }
 
 		pros::delay(30);

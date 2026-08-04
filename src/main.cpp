@@ -14,6 +14,7 @@ void initialize() {
 	pros::lcd::initialize();
 	
     sensor_lift.reset_position();
+    sensor_gyro.tare_rotation();
 
     motor_group_left.set_brake_mode(E_MOTOR_BRAKE_COAST);
     motor_group_right.set_brake_mode(E_MOTOR_BRAKE_COAST);
@@ -180,6 +181,8 @@ void opcontrol() {
         bool btnD = controller.get_digital_new_press(DIGITAL_DOWN);
         bool btnA = controller.get_digital(DIGITAL_A);
         bool btnB = controller.get_digital(DIGITAL_B);
+        bool btnX = controller.get_digital_new_press(DIGITAL_X);
+        bool btnY = controller.get_digital_new_press(DIGITAL_Y);
         
         // 底盘锁
         if (overThreshold()) {
@@ -233,6 +236,15 @@ void opcontrol() {
             motor_toggle.move(127);
         } else {
             motor_toggle.move(0);
+        }
+
+        if (btnX) {
+            pros::delay(1000);
+            chassis::turnGyro(90, 5000);
+        }
+        if (btnY) {
+            pros::delay(1000);
+            chassis::turnGyro(45, 5000);
         }
 
 		pros::delay(30);

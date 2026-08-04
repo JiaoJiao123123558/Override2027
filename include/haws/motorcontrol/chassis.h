@@ -9,7 +9,7 @@ namespace chassis {
 #define STRIGHT_ACC 4//直行
 #define STRIGHT_MAX_V 100
 #define STRIGHT_MIN_V 25
-#define TURN_ACC 0.5//转向 加速度,10
+#define TURN_ACC 0.8//转向 加速度,10
 #define TURN_MAX_V 100//100
 #define TURN_MIN_V 20//20
 

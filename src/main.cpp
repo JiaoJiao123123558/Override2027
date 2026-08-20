@@ -167,7 +167,7 @@ void opcontrol() {
 
 	while(true) {
         controller.print(2, 0, chassisLock ? "锁底盘" : "      ");
-        pros::lcd::print(6, "enc: %d", chassis::getPosition());
+        pros::lcd::print(6, "enc: %d, temp: %d", motor_group_left.get_temperature());
         pros::lcd::print(7, "lift rotate: %d", sensor_lift.get_position());
         pros::lcd::register_btn1_cb(chassis::reset); 
 		int ch3 = controller.get_analog(ANALOG_LEFT_Y);

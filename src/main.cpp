@@ -200,8 +200,6 @@ void opcontrol() {
         bool btnD = controller.get_digital_new_press(DIGITAL_DOWN);
         bool btnA = controller.get_digital(DIGITAL_A);
         bool btnB = controller.get_digital(DIGITAL_B);
-        bool btnX = controller.get_digital_new_press(DIGITAL_X);
-        bool btnY = controller.get_digital_new_press(DIGITAL_Y);
         
         // 底盘锁
         if (overThreshold()) {
@@ -249,15 +247,6 @@ void opcontrol() {
             motor_toggle.move(127);
         } else {
             motor_toggle.move(0);
-        }
-
-        if (btnX) {
-            pros::delay(1000);
-            chassis::turnGyro(90, 5000);
-        }
-        if (btnY) {
-            pros::delay(1000);
-            chassis::turnGyro(45, 5000);
         }
 
 		pros::delay(30);

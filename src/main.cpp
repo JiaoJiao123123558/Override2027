@@ -3,6 +3,9 @@
 #include "haws/motorcontrol/chassis.h"
 #include "haws/auto.h"
 #include "pros/motors.h"
+#include "haws/display/logger.h"
+#include <cerrno>
+#include <cstdio>
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -13,11 +16,16 @@
 void initialize() {
 	pros::lcd::initialize();
 	
+    motor_group_left.tare_position_all();
+    motor_group_right.tare_position_all();
     sensor_lift.reset_position();
+    sensor_gyro.tare_rotation();
 
-    motor_group_left.set_brake_mode(E_MOTOR_BRAKE_COAST);
-    motor_group_right.set_brake_mode(E_MOTOR_BRAKE_COAST);
+    motor_group_left.set_brake_mode_all(E_MOTOR_BRAKE_COAST);
+    motor_group_right.set_brake_mode_all(E_MOTOR_BRAKE_COAST);
     motor_group_lift.set_brake_mode_all(E_MOTOR_BRAKE_HOLD);
+
+    Logger::getInstance();
 }
 
 /**
@@ -53,7 +61,8 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-int autoSelection = 1;
+int autoSelection = 6;
+// bool isRunAuto = false;
 const char *autoTitles[] = {
     "技能",
     "红左1",
@@ -65,6 +74,7 @@ const char *autoTitles[] = {
     "蓝右1",
     "蓝右2"};
 void autonomous() {
+    // isRunAuto = true;
     switch (autoSelection) {
     case 0:
         skill();
@@ -117,14 +127,12 @@ void autoSelector() {
             controller.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
         }
         if (controller.get_digital_new_press(DIGITAL_B)) {
-            controller.print(2, 1, "x");
-            pros::delay(800);
-            controller.clear_line(2);
             break;
         }
         pros::delay(50);
     }
     pros::delay(50);
+    controller.print(2, 1, "x");
     isSelectAuto = false;
 }
 
@@ -162,14 +170,26 @@ void opcontrol() {
     bool gunState = true;
     int curLiftGear = 0;
     bool chassisLock = false;
+    int controllerPrintCount = 0;
 
     autoSelector();
 
+    pros::lcd::register_btn0_cb(Logger::getInstance().pageUpCallback);
+    pros::lcd::register_btn1_cb(chassis::reset);
+    pros::lcd::register_btn2_cb(Logger::getInstance().pageDownCallback);
+
 	while(true) {
-        controller.print(2, 0, chassisLock ? "锁底盘" : "      ");
-        pros::lcd::print(6, "enc: %d, temp: %d", motor_group_left.get_temperature());
-        pros::lcd::print(7, "lift rotate: %d", sensor_lift.get_position());
-        pros::lcd::register_btn1_cb(chassis::reset); 
+        // controllerPrintCount++;
+        // if (controllerPrintCount > 10) {
+        //     controllerPrintCount = 0;
+        //     if (!isRunAuto) {
+        //         controller.print(2, 0, "%.2f                ", sensor_gyro.get_rotation());
+        //     } else {
+        //         controller.print(2, 0, chassisLock ? "锁底盘" : "               ");
+        //     }
+        // }
+        pros::lcd::print(6, "enc: %d, gyro: %d, temp: %.1f", chassis::getPosition(), sensor_gyro.get_rotation(), motor_group_left.get_temperature());
+        pros::lcd::print(7, "lift rotate: %d, temp: %.1f", sensor_lift.get_position(), motor_group_lift.get_temperature());
 		int ch3 = controller.get_analog(ANALOG_LEFT_Y);
 		int ch1 = controller.get_analog(ANALOG_RIGHT_X);
         bool L1 = controller.get_digital(DIGITAL_L1);
@@ -202,17 +222,11 @@ void opcontrol() {
         
         // 升降
         if (L1) {
-            lift::lift(100);
+            lift::lift_S(90);
         } else if (L2) {
-            lift::lift(-100);
+            lift::lift_S(-70);
         } else {
-            lift::lift(0);
-        }
-        if (btnU) {
-            lift::setGear(CONSTRAIN(lift::getGear() + 1, 0, 5));
-        }
-        if (btnD) {
-            lift::setGear(CONSTRAIN(lift::getGear() - 1, 0, 5));
+            lift::lift_S(0);
         }
 
         // 滚轮

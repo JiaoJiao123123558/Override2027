@@ -2,6 +2,7 @@
 #include "haws/motorcontrol/lift.h"
 #include "haws/motorcontrol/chassis.h"
 #include "haws/auto.h"
+#include "pros/misc.h"
 #include "pros/motors.h"
 #include "haws/display/logger.h"
 #include <cerrno>
@@ -61,7 +62,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-int autoSelection = 6;
+int autoSelection = 3;
 // bool isRunAuto = false;
 const char *autoTitles[] = {
     "技能",
@@ -107,7 +108,7 @@ void autonomous() {
 }
 
 // 是否进入选自动程序
-bool isSelectAuto = false;
+bool isSelectAuto = true;
 // 选自动
 void autoSelector() {
     controller.print(2, 0, "[ ]%s", autoTitles[autoSelection]);
@@ -166,8 +167,8 @@ bool overThreshold() {
 }
 
 void opcontrol() {
-    bool clipState = true;
-    bool gunState = true;
+    bool clipState = 0;
+    bool gunState = false;
     int curLiftGear = 0;
     bool chassisLock = false;
     int controllerPrintCount = 0;
@@ -194,12 +195,17 @@ void opcontrol() {
 		int ch1 = controller.get_analog(ANALOG_RIGHT_X);
         bool L1 = controller.get_digital(DIGITAL_L1);
         bool L2 = controller.get_digital(DIGITAL_L2);
-        bool R1 = controller.get_digital(DIGITAL_R1);
+        bool R1 = controller.get_digital_new_press(DIGITAL_R1); //HYQ
+        //bool R1 = controller.get_digital(DIGITAL_R1);  ZYT
         bool R2 = controller.get_digital(DIGITAL_R2);
         bool btnU = controller.get_digital_new_press(DIGITAL_UP);
         bool btnD = controller.get_digital_new_press(DIGITAL_DOWN);
         bool btnA = controller.get_digital(DIGITAL_A);
-        bool btnB = controller.get_digital(DIGITAL_B);
+        bool btnY = controller.get_digital(DIGITAL_Y);
+        bool btnB = controller.get_digital_new_press(DIGITAL_B);
+        bool btnR = controller.get_digital_new_press(DIGITAL_RIGHT);
+        bool btnX = controller.get_digital_new_press(DIGITAL_X);
+
         
         // 底盘锁
         if (overThreshold()) {
@@ -207,10 +213,7 @@ void opcontrol() {
             motor_group_right.set_brake_mode(E_MOTOR_BRAKE_COAST);
             chassisLock = false;
         }
-        if (controller.get_digital(DIGITAL_L1)
-            && controller.get_digital(DIGITAL_L2)
-            && controller.get_digital(DIGITAL_R1)
-            && controller.get_digital(DIGITAL_R2)) {
+        if (btnR) {
             chassisLock = true;
             chassis::move(0, 0);
         }
@@ -231,10 +234,19 @@ void opcontrol() {
 
         // 滚轮
         if (R1) {
+            clipState=!clipState;
+        }
+        if(clipState){
             motor_group_roller.move(127);
-        } else {
+        }else{
             motor_group_roller.move(0);
         }
+
+        // if (R1) {
+        //     motor_group_roller.move(127);
+        // }else{
+        //     motor_group_roller.move(0);
+        // }
 
         // 夹子
         if (R2) {
@@ -243,12 +255,16 @@ void opcontrol() {
             motor_clip.move(0);
         }
 
-        if (btnA) {
+        if (btnY) {
             motor_toggle.move(127);
         } else {
             motor_toggle.move(0);
         }
 
+        if(btnB){
+            gunState=!gunState;
+        }
+        digit_toggle.set_value(gunState);
 		pros::delay(30);
 	}
 }

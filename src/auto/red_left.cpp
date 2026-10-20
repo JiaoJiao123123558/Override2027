@@ -11,6 +11,13 @@ void redLeft1() {
     pros::delay(400);
     lift::liftToPosition(200);
 
+    sensor_lift.reset_position();
+    digit_toggle.set_value(false);
+    // 翻滚筒
+    motor_toggle.move_relative(2000, 600);//1800，600
+    pros::delay(400);
+    lift::liftToPosition(200);
+
 
     // 放预装
     chassis::moveEnc(730, 3000);

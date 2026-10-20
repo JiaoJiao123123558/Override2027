@@ -7,7 +7,7 @@ using namespace pros;
 
 namespace chassis {
 #define STRIGHT_ACC 4//直行
-#define STRIGHT_MAX_V 40
+#define STRIGHT_MAX_V 100//40
 #define STRIGHT_MIN_V 10
 #define STRIGHT_S_DCC 0.08
 #define STRIGHT_S_ACC_TIME 1000
@@ -72,5 +72,21 @@ void turnGyro(float angle, int timeout, int maxPower = TURN_MAX_V, motor_brake_m
 void rushGyro(int angle, int power);
 
 void findObject(int angleRange);
+
+enum DistancePos {
+    front,
+    back,
+};
+
+void rushDisFront(int distance, int power);
+void rushDisBack(int distance, int power);
+/**
+ * @brief 距离控制底盘直行函数
+ * @param distance  目标距离(距离传感器的目标值, 当前值大于此值为前进, 小于为后退)
+ * @param timeout   超时时间，单位ms，超过此时长后退出控制循环
+ * @param maxPower  拓展参数: 底盘移动的最大功率(默认为100, 可填入0至100的数值, 需为正数)
+ * @param brakeMode 拓展参数: 移动至目标值后的刹车方式(默认为brake)
+ */
+void moveDis(DistancePos pos, int distance, int timeout, int maxPower = 100, motor_brake_mode_e brakeMode = E_MOTOR_BRAKE_BRAKE);
 }
 #endif

@@ -85,7 +85,7 @@ void moveEnc(int distance, int timeout, int maxPower, motor_brake_mode_e brakeMo
     if (brakeMode != pros::E_MOTOR_BRAKE_INVALID) {
         brake(brakeMode);
     }
-    pros::lcd::print(7, "moveEnc: [%d / %d] %dms", current, distance, pros::millis() - start_time);
+    Logger::getInstance().info("moveEnc: [%d, %d]", current, distance);
 }
 
 void moveEnc_S(int distance, int maxPower) {
@@ -262,7 +262,7 @@ void turnGyro(float angle, int timeout, int maxPower, motor_brake_mode_e brakeMo
     if (brakeMode != pros::E_MOTOR_BRAKE_INVALID) {
         brake(brakeMode);
     }
-    pros::lcd::print(7, "turnGyro: [%.2f / %.2f] %dms", sensor_gyro.get_rotation(), angle, pros::millis() - start_time);
+    Logger::getInstance().info("turnGyro: [%f / %f]", sensor_gyro.get_rotation(), angle);
 }
 
 void rushGyro(int angle, int power) {
@@ -314,5 +314,190 @@ void rushGyro(int angle, int power) {
 
 //     rushGyro(minDistanceAngle - 1, TURN_MIN_V);
 // }
+
+void rushDisFront(int distance, int power) {
+    float err = sensor_disFront.get_distance() - distance;
+    int timer = 0;
+    chassis::reset();
+    if (err > 0) {
+        while (err > 10) {
+            chassis::move(power, power);
+            pros::delay(15);
+            timer += 15;
+            err = sensor_disFront.get_distance() - distance;
+        }
+    } else {
+        while (err < -10) {
+            chassis::move(-power, -power);
+            pros::delay(15);
+            timer += 15;
+            err = sensor_disFront.get_distance() - distance;
+        }
+    }
+    chassis::move(0, 0);
+    chassis::brake();
+    pros::delay(10);
+    Logger::getInstance().info("rushDisFront: [%d / %d]", sensor_disFront.get_distance(), distance);
+}
+
+void rushDisBack(int distance, int power) {
+    float err = sensor_disBack.get_distance() - distance;
+    int timer = 0;
+    chassis::reset();
+    if (err > 0) {
+        while (err > 10) {
+            chassis::move(-power, -power);
+            pros::delay(15);
+            timer += 15;
+            err = sensor_disBack.get_distance() - distance;
+        }
+    } else {
+        while (err < -10) {
+            chassis::move(power, power);
+            pros::delay(15);
+            timer += 15;
+            err = sensor_disBack.get_distance() - distance;
+        }
+    }
+    chassis::move(0, 0);
+    chassis::brake();
+    pros::delay(10);
+    Logger::getInstance().info("rushDisBack: [%d / %d]", sensor_disBack.get_distance(), distance);
+}
+
+void moveDis_t(DistancePos pos, int distance, int timeout, int maxPower, motor_brake_mode_e brakeMode) {
+    float err = 0.0, lastErr = 0.0, totalErr = 0.0, deltaErr = 0.0; // 用于计算直行pid
+    float power = 0.0; // 输出功率
+    if (pos == front) {
+        err = sensor_disFront.get_distance() - distance;
+    } else {
+        err = sensor_disBack.get_distance() - distance;
+        Logger::getInstance().info("err: %.2f = %d - %d", err, sensor_disBack.get_distance(), distance);
+    }
+    
+    if (fabs(err) < 30) {
+        if (pos == front) {
+            rushDisFront(distance, 30);
+        } else {
+            rushDisBack(distance, 30);
+        }
+        return;
+    }
+
+    float kp = 0.28, ki = 0.01, kd = 1.0;
+    // 计时器
+    int timer = 0; // 用于超时退出循环，未使用计时器计时，timer每次循环+15
+    
+    chassis::reset();
+    while (true) {
+        // 计算直行pid
+        if (pos == front) {
+            err = sensor_disFront.get_distance() - distance;
+        } else {
+            err = sensor_disBack.get_distance() - distance;
+        }
+        
+        // 控制积分值在1以下，且分段积分
+        if (fabs(err) < 50) {
+            totalErr += err;
+        }
+        deltaErr = err - lastErr;
+        lastErr = err;
+        // 判据为转向超过目标值，需要反转的情况
+        if (err * lastErr <= 0) {
+            totalErr = 0;
+        }
+        power = kp * err + ki * totalErr + kd * deltaErr;
+        // 缓加速
+        power = power * CONSTRAIN(timer, 0, 210) / 210.0;
+        if (pos == back) {
+            power = -power;
+        }
+        // 退出条件
+        if (fabs(err) < 15 || timer > timeout) {
+            break;
+        }
+        // TODO: 确认是否需要在超限时再累计一个power_gyro
+        chassis::move(CONSTRAIN(power, -maxPower, maxPower),
+                      CONSTRAIN(power, -maxPower, maxPower));
+        // 分段积分
+        if (fabs(err) > abs(distance) * 0.2 || fabs(err) < 1) {
+            totalErr = 0;
+        }
+        // 延时
+        pros::delay(15);
+        timer += 15;
+    }
+    chassis::move(0, 0);
+    chassis::brake(brakeMode);
+    pros::delay(10);
+    Logger::getInstance().info("moveDis: [%d / %d]", sensor_disFront.get_distance(), distance);
+}
+
+void moveDis(DistancePos pos, int distance, int timeout, int maxPower, motor_brake_mode_e brakeMode) {
+    int current = 0, start = 0;
+    int sign = 1;
+    float power = 0;
+    if (pos == front) {
+        start = sensor_disFront.get_distance();
+    } else {
+        start = sensor_disBack.get_distance();
+    }
+    // 记录符号，控制输出都以第一象限计算
+    if (pos == front && start < distance) {
+        sign = -1;
+    }
+    if (pos == back && start > distance) {
+        sign = -1;
+    }
+
+    reset();
+    uint32_t start_time = pros::millis();
+    while (true) {
+        // 更新当前编码器值
+        if (pos == front) {
+            current = sensor_disFront.get_distance();
+        } else {
+            current = sensor_disBack.get_distance();
+        }
+
+        // 退出条件判断
+        if ((start < distance && distance - current < 10) ||
+            (start > distance && current - distance < 10) ||
+            pros::millis() - start_time > timeout) {
+            break;
+        }
+
+        // 计算输出功率
+        if (start < distance) {
+            if (current < (start + distance) / 2) {
+                power = STRIGHT_MIN_V + 10 + fabs(sqrt((current - start) * 2 * STRIGHT_ACC));
+            } else {
+                power = fabs(sqrt((distance - current) * 2 * STRIGHT_ACC));
+            }
+        } else {
+            if (current > (start + distance) / 2) {
+                power = STRIGHT_MIN_V + 10 + fabs(sqrt((start - current) * 2 * STRIGHT_ACC));
+            } else {
+                power = fabs(sqrt((current - distance) * 2 * STRIGHT_ACC));
+            }
+        }
+        power = CONSTRAIN(power, STRIGHT_MIN_V, maxPower);
+
+        // 底盘输出
+        move(power * sign, power * sign);
+
+        pros::delay(15);
+    }
+
+    if (brakeMode != pros::E_MOTOR_BRAKE_INVALID) {
+        brake(brakeMode);
+    }
+    if (pos == front) {
+        Logger::getInstance().info("moveDisF: [%d / %d]", sensor_disFront.get_distance(), distance);
+    } else {
+        Logger::getInstance().info("moveDisB: [%d / %d]", sensor_disBack.get_distance(), distance);
+    }
+}
 
 }

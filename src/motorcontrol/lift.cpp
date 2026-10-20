@@ -32,6 +32,10 @@ void lift(int power, motor_brake_mode_e brakeMode) {
         motor_group_lift.set_brake_mode_all(brakeMode);
         motor_group_lift.brake();
     } else {
+        if (getTaskEnable()) {
+            setTaskEnable(false);
+            pros::delay(20);
+        }
         motor_group_lift.move(power * 1.27);
     }
 }
@@ -107,8 +111,8 @@ void liftToTarget(void *liftTask) {
         err = target - sensor_lift.get_position();
 
         // 退出
-        if ((sign && err < 200) ||
-            (!sign && err > -200) ||
+        if ((sign && err < 300) ||
+            (!sign && err > -300) ||
             pros::millis() - start_time > 2000) {
             motor_group_lift.move(0);
             setIsRunningLift(false);
@@ -120,14 +124,13 @@ void liftToTarget(void *liftTask) {
     }
     // pros::lcd::print(1, "liftToTarget %d/%d", sensor_lift.get_position(), target);
     Logger::getInstance().info("liftToTarget %d/%d", sensor_lift.get_position(), target);
-    Logger::getInstance().info("lift brake");
     start_time = pros::millis();
     while (getTaskEnable()) {
         int32_t elapsed = pros::millis() - start_time;
-        if (elapsed <= 100) {
+        if (elapsed <= 200) {
             lift(0, E_MOTOR_BRAKE_BRAKE);
         } else {
-            break;
+            // break;
             lift(0, E_MOTOR_BRAKE_HOLD);
         }
         pros::delay(20);

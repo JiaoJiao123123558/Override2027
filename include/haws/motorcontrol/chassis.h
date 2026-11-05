@@ -6,16 +6,12 @@
 using namespace pros;
 
 namespace chassis {
-#define STRIGHT_ACC 4//直行
-#define STRIGHT_MAX_V 100//40
-#define STRIGHT_MIN_V 10
-#define STRIGHT_S_DCC 0.08
-#define STRIGHT_S_ACC_TIME 1000
-#define TURN_ACC 1.0//转向 加速度,10
-#define TURN_DCC 0.8
-#define TURN_MAX_V 100//100
-#define TURN_MIN_V 30//20
-#define STACK_THREADHOLD 1000
+// 直行
+#define STRIGHT_ACC 8
+#define STRIGHT_MIN_V 20
+// 转向
+#define TURN_ACC 20
+#define TURN_MIN_V 20
 
 /**
  * @brief 重置所有底盘电机编码器
@@ -37,56 +33,35 @@ void move(int lPower, int rPower);
 void brake(motor_brake_mode_e brakeMode = E_MOTOR_BRAKE_BRAKE);
 
 /**
+ * @brief 判断底盘是否卡死
+ * @return 判断结果
+ */
+bool isChassisStack();
+
+/**
  * @brief 读取底盘编码器的值
- * @return 底盘编码器的值
+ * @return 底盘所有编码器的平均值
  */
 int getPosition();
 
 /**
+ * @brief 分别读取底盘编码器的值
+ * @param leftPos 引用参数，通过参数返回左侧所有电机 {编码器的平均值}
+ * @param leftPos 引用参数，通过参数返回右侧所有电机 {编码器的平均值}
+ * @return 底盘编码器的值
+ */
+void getPositionSeparate(int &leftPos, int &rightPos);
+
+/**
  * @brief 编码器控制底盘直行函数
  * @param distance  移动的距离(电机的编码器目标值, 正数为前进, 负数为后退)
- * @param timeout   超时时间，单位ms，超过此时长后退出控制循环
- * @param maxPower  拓展参数: 底盘移动的最大功率(默认为100, 可填入0至100的数值, 需为正数)
- * @param brakeMode 拓展参数: 移动至目标值后的刹车方式(默认为brake)
  */
-void moveEnc(int distance, int timeout, int maxPower = STRIGHT_MAX_V, motor_brake_mode_e brakeMode = E_MOTOR_BRAKE_BRAKE);
-
-void moveEnc_S(int distance, int maxPower = STRIGHT_MAX_V);
-/**
- * @brief 使用PID+陀螺仪控制底盘转向函数
- * @param angle     底盘朝向的角度值(陀螺仪相对初始位置的值)
- * @param timeout   超时时间，单位ms，超过此时长后退出控制循环
- * @param maxPower  拓展参数: 底盘移动的最大功率(默认为100, 可填入0至100的数值, 需为正数)
- */
-void turnGyroPID(int angle, int timeout, int maxPower = TURN_MAX_V);
+void moveEnc(int distance);
 
 /**
  * @brief 使用陀螺仪控制底盘转向函数
  * @param angle     底盘朝向的角度值(陀螺仪相对初始位置的值)
- * @param timeout   超时时间，单位ms，超过此时长后退出控制循环
- * @param maxPower  拓展参数: 底盘移动的最大功率(默认为100, 可填入0至100的数值, 需为正数)
- * @param brakeMode 拓展参数: 移动至目标值后的刹车方式(默认为brake)
  */
-void turnGyro(float angle, int timeout, int maxPower = TURN_MAX_V, motor_brake_mode_e brakeMode = E_MOTOR_BRAKE_BRAKE);
-
-void rushGyro(int angle, int power);
-
-void findObject(int angleRange);
-
-enum DistancePos {
-    front,
-    back,
-};
-
-void rushDisFront(int distance, int power);
-void rushDisBack(int distance, int power);
-/**
- * @brief 距离控制底盘直行函数
- * @param distance  目标距离(距离传感器的目标值, 当前值大于此值为前进, 小于为后退)
- * @param timeout   超时时间，单位ms，超过此时长后退出控制循环
- * @param maxPower  拓展参数: 底盘移动的最大功率(默认为100, 可填入0至100的数值, 需为正数)
- * @param brakeMode 拓展参数: 移动至目标值后的刹车方式(默认为brake)
- */
-void moveDis(DistancePos pos, int distance, int timeout, int maxPower = 100, motor_brake_mode_e brakeMode = E_MOTOR_BRAKE_BRAKE);
+void turnGyro(float angle);
 }
 #endif
